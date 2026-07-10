@@ -72,7 +72,7 @@ function mountConnect(target, opts = {}) {
     }
   };
   document.addEventListener("click", onDocClick);
-  function el(tag, cls, text) {
+  function el2(tag, cls, text) {
     const n = document.createElement(tag);
     if (cls)
       n.className = cls;
@@ -162,15 +162,15 @@ function mountConnect(target, opts = {}) {
     if (state.kind === "booting")
       return;
     if (state.kind === "not-installed") {
-      const b = el("button", "btn get");
-      b.append(el("span", "glyph"), el("span", void 0, "Get Switchboard"), el("span", "arr", "\u2197"));
+      const b = el2("button", "btn get");
+      b.append(el2("span", "glyph"), el2("span", void 0, "Get Switchboard"), el2("span", "arr", "\u2197"));
       b.onclick = () => window.open(state.kind === "not-installed" ? state.installUrl : installUrl, "_blank", "noopener");
       mount.append(b);
       return;
     }
     if (state.kind === "disconnected") {
-      const b = el("button", "btn connect");
-      b.append(el("span", "glyph"), el("span", void 0, "Connect Switchboard"));
+      const b = el2("button", "btn connect");
+      b.append(el2("span", "glyph"), el2("span", void 0, "Connect Switchboard"));
       b.onclick = doConnect;
       mount.append(b);
       return;
@@ -179,20 +179,20 @@ function mountConnect(target, opts = {}) {
     const rawName = user?.name?.trim();
     const collides = !!rawName && !!project?.name && rawName.toLowerCase() === project.name.toLowerCase();
     const name = !rawName || collides ? "there" : rawName;
-    const wrap = el("div", "wrap");
-    const chip = el("button", "chip");
-    const av = el("div", "av");
+    const wrap = el2("div", "wrap");
+    const chip = el2("button", "chip");
+    const av = el2("div", "av");
     if (user?.avatar) {
-      const img = el("img");
+      const img = el2("img");
       img.src = user.avatar;
       img.alt = name;
       av.append(img);
     } else
       av.textContent = name.charAt(0).toUpperCase();
-    const who = el("div", "who");
-    who.append(el("div", "hi", `Hi ${name}`));
-    who.append(el("div", "proj", project ? project.name : "No context lent"));
-    chip.append(av, who, el("span", "caret", "\u25BE"));
+    const who = el2("div", "who");
+    who.append(el2("div", "hi", `Hi ${name}`));
+    who.append(el2("div", "proj", project ? project.name : "No context lent"));
+    chip.append(av, who, el2("span", "caret", "\u25BE"));
     chip.onclick = (e) => {
       e.stopPropagation();
       menuOpen = !menuOpen;
@@ -200,17 +200,17 @@ function mountConnect(target, opts = {}) {
     };
     wrap.append(chip);
     if (menuOpen) {
-      const menu = el("div", "menu");
-      menu.append(el("div", "lbl", "Working on"));
-      const row = el("button", "proj-row");
-      row.append(el("span", void 0, project ? project.name : "Choose a context"));
-      row.append(el("span", "go", project ? "Switch \u25B8" : "Choose \u25B8"));
+      const menu = el2("div", "menu");
+      menu.append(el2("div", "lbl", "Working on"));
+      const row = el2("button", "proj-row");
+      row.append(el2("span", void 0, project ? project.name : "Choose a context"));
+      row.append(el2("span", "go", project ? "Switch \u25B8" : "Choose \u25B8"));
       row.onclick = doPick;
-      menu.append(row, el("div", "sep"));
-      const dc = el("button", "item", "Disconnect this app");
+      menu.append(row, el2("div", "sep"));
+      const dc = el2("button", "item", "Disconnect this app");
       dc.onclick = doDisconnect;
       menu.append(dc);
-      menu.append(el("div", "foot", "Connectors, budgets & activity live in the Switchboard toolbar panel."));
+      menu.append(el2("div", "foot", "Connectors, budgets & activity live in the Switchboard toolbar panel."));
       wrap.append(menu);
     }
     mount.append(wrap);
@@ -377,15 +377,26 @@ function whenRelayReady(timeoutMs = 3e3, opts) {
 
 // src/shelf.js
 var $ = (id) => document.getElementById(id);
+var el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+};
 var INSTALL_URL = "https://thelastprompt.ai/switchboard/";
 var K_CSV = "shelf:csv";
 var K_STEER = "shelf:steer";
 var K_LAST = "shelf:last";
+var K_PLAY = "shelf:playbook";
 var relay = null;
 var installed = true;
 var running = false;
-var runSeq = 0;
+var triageSeq = 0;
+var refineSeq = 0;
 var rows = [];
+var brand = null;
+var plans = [];
+var selectedPlan = null;
 var SAMPLE_CSV = `SKU,Product,On hand,Avg weekly sales,Unit cost (INR),Price (INR),Lead time (days)
 VCS-10,Vitamin C Serum 10%,96,84,210,649,21
 SPF-50,Daily SPF 50 Gel,140,120,165,499,18
@@ -411,6 +422,7 @@ GLD-24,24K Gold Sheet Mask (pack of 4),380,0.2,180,599,45
 BRD-77,Beard Growth Oil,240,0,120,399,21
 CUC-30,Cucumber Eye Pads (30s),310,0.4,88,249,30
 LIP-09,Lip Plumping Gloss,150,0.1,105,349,25`;
+var isSample = () => $("csv").value.trim() === SAMPLE_CSV.trim();
 function splitCsvLine(line) {
   const out = [];
   let cur = "", q = false;
@@ -497,7 +509,7 @@ function renderStats() {
     });
     const has = $("csv").value.trim().length > 0;
     msg.className = "parse-msg" + (has ? " bad" : "");
-    msg.textContent = has ? "couldn't read that \u2014 need columns like SKU, Product, On hand, Avg weekly sales, Unit cost, Price, Lead time" : "paste a sheet or load the sample \u2014 the count is instant";
+    msg.textContent = has ? "couldn't read that \u2014 need columns like SKU, Product, On hand, Avg weekly sales, Unit cost, Price, Lead time" : relay ? "paste " + (brand ? brand.name + "'s" : "your") + " sheet \u2014 the count is instant" : "paste a sheet or load the sample \u2014 the count is instant";
     return;
   }
   const s = computeStats(rows);
@@ -505,8 +517,13 @@ function renderStats() {
   $("s-value").textContent = fmtINR(s.value);
   $("s-risk").textContent = String(s.risk.length);
   $("s-dead").textContent = String(s.dead.length);
-  msg.className = "parse-msg ok";
-  msg.textContent = "\u2713 " + rows.length + " SKUs read";
+  if (isSample()) {
+    msg.className = "parse-msg smp";
+    msg.textContent = "sample sheet \u2014 DTC skincare, " + rows.length + " SKUs \xB7 paste yours to replace it";
+  } else {
+    msg.className = "parse-msg ok";
+    msg.textContent = "\u2713 " + rows.length + " SKUs read";
+  }
 }
 function reparse(persist = true) {
   rows = parseCsv($("csv").value);
@@ -532,15 +549,112 @@ $("clear-csv").addEventListener("click", () => {
   $("csv").value = "";
   reparse();
 });
-document.querySelectorAll(".schip").forEach((chip) => {
-  chip.addEventListener("click", () => {
-    $("steer").value = chip.dataset.steer || chip.textContent;
-    try {
-      localStorage.setItem(K_STEER, $("steer").value);
-    } catch {
+function normalizeBrand(ctx) {
+  const d = ctx && ctx.data || {};
+  const arrs = (v) => Array.isArray(v) ? v.filter(Boolean).map(String) : [];
+  const products = arrs(d.products).length ? arrs(d.products) : arrs(d.range);
+  return {
+    name: String(ctx.name || d.name || "Brand"),
+    voice: String(d.voice || d.vibe || "").trim(),
+    positioning: String(d.positioning || "").trim(),
+    audience: String(d.audience || "").trim(),
+    palette: arrs(d.palette),
+    // FLAT color strings per the contract
+    products
+  };
+}
+async function loadBrand() {
+  if (!relay || !relay.context || typeof relay.context.active !== "function") {
+    brand = null;
+    afterBrandChange();
+    return;
+  }
+  try {
+    const ctx = await relay.context.active();
+    brand = ctx ? normalizeBrand(ctx) : null;
+  } catch {
+    brand = null;
+  }
+  afterBrandChange();
+}
+async function pickBrand() {
+  if (!relay || !relay.context || typeof relay.context.pick !== "function") return;
+  try {
+    const ctx = await relay.context.pick();
+    if (ctx) {
+      brand = normalizeBrand(ctx);
+      afterBrandChange();
     }
-  });
-});
+  } catch {
+  }
+}
+$("brand-load").addEventListener("click", pickBrand);
+$("brand-switch").addEventListener("click", pickBrand);
+function afterBrandChange() {
+  updateCtxbar();
+  renderSteerChips();
+  renderStats();
+  reflect();
+}
+function updateCtxbar() {
+  const bar = $("ctxbar");
+  if (!relay) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  const chip = $("bchip");
+  if (brand) {
+    chip.hidden = false;
+    chip.textContent = "";
+    chip.append(el("span", "dot"), el("span", null, brand.name));
+    for (const c of brand.palette.slice(0, 4)) {
+      const sw = el("span", "sw");
+      sw.style.background = c;
+      chip.append(sw);
+    }
+    $("ctx-line").textContent = "triaging " + brand.name + "'s shelf \u2014 heroes and positioning shape the calls";
+    $("brand-switch").hidden = false;
+    $("brand-load").hidden = true;
+  } else {
+    chip.hidden = true;
+    $("ctx-line").textContent = "no brand lent \u2014 the foreman triages blind";
+    $("brand-switch").hidden = true;
+    $("brand-load").hidden = false;
+  }
+}
+var DEFAULT_STEERS = [
+  { label: "Plan for a festive sale spike", steer: "Plan for a festive sale spike \u2014 Diwali is 6 weeks out." },
+  { label: "I have \u20B92,00,000 \u2014 what do I reorder?", steer: "I have \u20B92,00,000 to spend \u2014 what do I reorder first?" },
+  { label: "What do I discount to free up cash?", steer: "What do I discount to free up cash the fastest?" }
+];
+function steerChoices() {
+  if (!brand) return DEFAULT_STEERS;
+  const out = [];
+  const hero = brand.products[0];
+  if (hero) out.push({ label: "Never let " + hero + " stock out", steer: "Protect " + brand.name + "'s heroes \u2014 never let " + hero + " stock out; size the reorders to guarantee it.", brandy: true });
+  if (brand.positioning) out.push({ label: "What clashes with our positioning?", steer: brand.name + ' positions as "' + brand.positioning + '" \u2014 which SKUs no longer fit, and should the dead ones be cut or folded into hero bundles?', brandy: true });
+  for (const d of DEFAULT_STEERS) {
+    if (out.length >= 4) break;
+    out.push(d);
+  }
+  return out.slice(0, 4);
+}
+function renderSteerChips() {
+  const mount = $("schips");
+  mount.textContent = "";
+  for (const c of steerChoices()) {
+    const b = el("button", "schip" + (c.brandy ? " brandy" : ""), c.label);
+    b.addEventListener("click", () => {
+      $("steer").value = c.steer;
+      try {
+        localStorage.setItem(K_STEER, c.steer);
+      } catch {
+      }
+    });
+    mount.append(b);
+  }
+}
 $("steer").addEventListener("input", () => {
   try {
     localStorage.setItem(K_STEER, $("steer").value);
@@ -550,24 +664,39 @@ $("steer").addEventListener("input", () => {
 $("steer").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !$("go").disabled) runTriage();
 });
+function onRelay(r) {
+  relay = r;
+  $("load-sample").hidden = true;
+  if (isSample()) {
+    $("csv").value = "";
+    reparse();
+  }
+  loadBrand();
+  reflect();
+}
+function offRelay() {
+  relay = null;
+  brand = null;
+  $("load-sample").hidden = false;
+  afterBrandChange();
+}
 mountConnect($("chip-dock"), {
   scope: { models: ["sonnet"], reason: "triage your inventory" },
   installUrl: INSTALL_URL,
-  onConnect: (r) => {
-    relay = r;
-    reflect();
-  },
-  onDisconnect: () => {
-    relay = null;
-    reflect();
-  }
+  onConnect: (r) => onRelay(r),
+  onDisconnect: () => offRelay(),
+  onProjectChange: () => loadBrand()
+  // the chip's own "Switch ▸" must re-derive strap/chips/prompts too
 });
 (async () => {
   const r = await whenRelayReady(2e3, { installUrl: INSTALL_URL });
   if (r && "connect" in r) {
     installed = true;
     const grant = await r.permissions().catch(() => null);
-    if (grant) relay = r;
+    if (grant) {
+      onRelay(r);
+      return;
+    }
   } else {
     installed = false;
   }
@@ -584,45 +713,54 @@ function reflect() {
   }
   if (relay) {
     if (!rows.length) {
-      hint.append("connected \u2014 now paste a sheet or load the sample");
+      hint.append("connected \u2014 paste " + (brand ? brand.name + "'s" : "a") + " sheet to triage");
       return;
     }
-    const b = document.createElement("b");
-    b.textContent = "your own Claude";
+    const b = el("em", "you", "your own Claude");
     hint.append("runs on ", b, " \u2014 the sheet goes to your sidekick, nowhere else");
   } else if (installed) {
     hint.append("connect Switchboard (top right) to run the triage \u2014 the count above already works");
   } else {
-    const a = document.createElement("a");
+    const a = el("a", null, "get Switchboard");
     a.href = INSTALL_URL;
     a.target = "_blank";
     a.rel = "noreferrer";
-    a.textContent = "get Switchboard";
     hint.append("needs the Switchboard sidekick \u2014 ", a, " and come straight back");
   }
 }
-reflect();
 var csvField = (s) => /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+var sheetCsv = () => rows.map((r) => [r.sku, csvField(r.product), r.onHand, r.weekly, r.cost, r.price, r.lead].join(",")).join("\n");
+function brandLines() {
+  if (!brand) return "";
+  return [
+    "This is " + brand.name + "'s shelf.",
+    brand.positioning ? "Positioning: " + brand.positioning + "." : "",
+    brand.audience ? "Audience: " + brand.audience + "." : "",
+    brand.products.length ? "Hero products: " + brand.products.join(", ") + " \u2014 protect their cover first, and make dead-stock actions lean on them (bundles, gift-with-purchase beside a hero)." : "",
+    brand.voice ? "Write the summary/why/action lines in the brand's voice: " + brand.voice + "." : ""
+  ].filter(Boolean).join(" ");
+}
 function buildPrompt() {
-  const clean = rows.map((r) => [r.sku, csvField(r.product), r.onHand, r.weekly, r.cost, r.price, r.lead].join(",")).join("\n");
   const steer = $("steer").value.trim();
   return [
     "You are the sharpest inventory foreman a small e-commerce brand ever hired. Blunt, numerate, practical. Currency: INR.",
+    brandLines(),
     "Stock + sales sheet (CSV columns: sku,product,on_hand,avg_weekly_sales,unit_cost_inr,price_inr,lead_time_days):",
-    clean,
+    sheetCsv(),
     "",
     "Ground rules:",
     "- weeks_of_cover = on_hand / avg_weekly_sales. A SKU is a stockout risk when weeks_of_cover < lead_time_days / 7.",
     "- dead = avg_weekly_sales near zero with stock still on hand.",
     "- orderQty covers lead-time demand plus ~4 weeks of buffer, minus stock on hand, rounded to a sensible round number.",
-    steer ? `Owner's steer: "` + steer + '" \u2014 answer it head-on in steerAnswer and let it shape the reorder and discount calls.' : "No steer given \u2014 make steerAnswer the single highest-value move for this week.",
+    steer ? `Owner's steer: "` + steer + '" \u2014 let it shape the reorder calls, the discount calls, and the plans.' : "No steer given \u2014 optimize for the highest-value week this shelf can have.",
     "",
     "Respond with ONLY a JSON object \u2014 no prose, no markdown fences \u2014 exactly this shape:",
-    '{"summary":"two plain-talk sentences on the shape of the situation","cashLockedInDead":0,"reorderNow":[{"sku":"","product":"","orderQty":0,"why":""}],"watch":[{"sku":"","product":"","why":""}],"deadWeight":[{"sku":"","product":"","action":"","recoverable":0}],"abc":{"a":["SKU"],"b":["SKU"],"c":["SKU"]},"steerAnswer":""}',
+    '{"summary":"two plain-talk sentences on the shape of the situation","cashLockedInDead":0,"reorderNow":[{"sku":"","product":"","orderQty":0,"why":""}],"watch":[{"sku":"","product":"","why":""}],"deadWeight":[{"sku":"","product":"","action":"","recoverable":0}],"abc":{"a":["SKU"],"b":["SKU"],"c":["SKU"]},"plans":[{"title":"","angle":"","moves":[""],"recommended":false}]}',
     "- cashLockedInDead: number = sum of on_hand \xD7 unit_cost across the deadWeight SKUs.",
     '- deadWeight: action is one concrete move ("40% off, bundle with the Vitamin C hero", "liquidate to a reseller lot"); recoverable is the realistic INR you can pull back (number).',
     "- abc: classify EVERY sku by weekly revenue (price \xD7 avg_weekly_sales): a = the head that drives most revenue, b = middle, c = tail. Use only SKU codes from the sheet, each exactly once.",
-    "- why/action lines: one specific sentence each, use the actual numbers (cover weeks, lead time, cash)."
+    "- why/action lines: one specific sentence each, use the actual numbers (cover weeks, lead time, cash).",
+    "- plans: exactly 3 genuinely DIFFERENT one-week playbooks for this sheet (e.g. cash-first vs growth-first vs balanced \u2014 pick the angles that fit THIS data). title \u2264 4 words; angle = one sentence on the tradeoff; moves = 2-3 concrete moves quoting real SKUs and numbers. EXACTLY ONE plan has recommended:true \u2014 the one you would run" + (steer ? " given the owner's steer." : ".")
   ].filter(Boolean).join("\n");
 }
 var PROG_LINES = [
@@ -630,7 +768,7 @@ var PROG_LINES = [
   "Checking lead times\u2026",
   "Weighing the dead stock\u2026",
   "Splitting A / B / C\u2026",
-  "Stamping the manifest\u2026"
+  "Drafting three plans\u2026"
 ];
 var progTimer = null;
 function setRunning(on) {
@@ -652,20 +790,19 @@ function setRunning(on) {
 function showError(err) {
   const p = $("err-text");
   p.textContent = "";
-  const b = document.createElement("b");
-  b.textContent = "Triage failed. ";
+  const b = el("b", null, "Triage failed. ");
   p.append(b, String(err?.message || err).slice(0, 240));
   $("errbox").hidden = false;
 }
 async function runTriage() {
   if (!relay || running || !rows.length) return;
-  const myRun = ++runSeq;
+  const myRun = ++triageSeq;
   $("errbox").hidden = true;
   setRunning(true);
   let acc = "";
   try {
     for await (const d of relay.stream({ prompt: buildPrompt() })) {
-      if (myRun !== runSeq) return;
+      if (myRun !== triageSeq) return;
       if (d.type === "text") {
         acc += d.text;
         $("prog-meta").textContent = (acc.length / 1024).toFixed(1) + " kb";
@@ -673,7 +810,7 @@ async function runTriage() {
         throw new Error(d.error?.message || "stream error");
       }
     }
-    if (myRun !== runSeq) return;
+    if (myRun !== triageSeq) return;
     const raw = acc.match(/\{[\s\S]*\}/)?.[0];
     if (!raw) throw new Error("the model replied without a manifest \u2014 hit Re-run triage, it lands on the retry");
     let data;
@@ -687,19 +824,19 @@ async function runTriage() {
       localStorage.setItem(K_LAST, JSON.stringify(result));
     } catch {
     }
-    renderBoard(result);
+    renderBoard(result, { fresh: true });
     $("board").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
-    if (myRun === runSeq) showError(err);
+    if (myRun === triageSeq) showError(err);
   } finally {
-    if (myRun === runSeq) setRunning(false);
+    if (myRun === triageSeq) setRunning(false);
   }
 }
 $("go").addEventListener("click", runTriage);
 $("retry").addEventListener("click", runTriage);
 $("b-regen").addEventListener("click", runTriage);
 $("prog-cancel").addEventListener("click", () => {
-  runSeq++;
+  triageSeq++;
   setRunning(false);
 });
 var arr = (v) => Array.isArray(v) ? v : [];
@@ -709,51 +846,28 @@ var coerceNum = (v) => {
   return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : null;
 };
 function tagCard(kind, item) {
-  const el = document.createElement("div");
-  el.className = "tagcard " + kind;
-  const row = document.createElement("div");
-  row.className = "trow";
-  const sku = document.createElement("span");
-  sku.className = "skutag";
-  sku.textContent = String(item.sku ?? "?");
-  row.append(sku);
+  const card = el("div", "tagcard " + kind);
+  const row = el("div", "trow");
+  row.append(el("span", "skutag", String(item.sku ?? "?")));
   if (kind === "reorder") {
-    const st = document.createElement("span");
-    st.className = "tstamp";
     const q = coerceNum(item.orderQty);
-    st.textContent = q != null ? "order " + fmtNum(q) : "order";
-    row.append(st);
+    row.append(el("span", "tstamp", q != null ? "order " + fmtNum(q) : "order"));
   } else if (kind === "dead") {
-    const st = document.createElement("span");
-    st.className = "tstamp";
-    st.textContent = "dead";
-    row.append(st);
+    row.append(el("span", "tstamp", "dead"));
   }
-  const name = document.createElement("div");
-  name.className = "tname";
-  name.textContent = String(item.product ?? "");
-  const why = document.createElement("div");
-  why.className = "twhy";
-  why.textContent = String(item.why ?? item.action ?? "");
-  el.append(row, name, why);
+  card.append(row, el("div", "tname", String(item.product ?? "")), el("div", "twhy", String(item.why ?? item.action ?? "")));
   if (kind === "dead") {
-    const rec = document.createElement("div");
-    rec.className = "trecover";
     const rn = coerceNum(item.recoverable);
-    rec.textContent = "recover \u2248 " + (rn != null ? fmtINR(rn) : String(item.recoverable ?? "?"));
-    el.append(rec);
+    card.append(el("div", "trecover", "recover \u2248 " + (rn != null ? fmtINR(rn) : String(item.recoverable ?? "?"))));
   }
-  return el;
+  return card;
 }
 function fillColumn(mountId, countId, kind, items) {
   const mount = $(mountId);
   mount.textContent = "";
   $(countId).textContent = items.length ? items.length + (items.length === 1 ? " SKU" : " SKUs") : "";
   if (!items.length) {
-    const empty = document.createElement("div");
-    empty.className = "col-empty";
-    empty.textContent = "\u2014 nothing on this hook";
-    mount.append(empty);
+    mount.append(el("div", "col-empty", "\u2014 nothing on this hook"));
     return;
   }
   items.forEach((it) => mount.append(tagCard(kind, it)));
@@ -762,24 +876,155 @@ function fillAbc(mountId, skus) {
   const mount = $(mountId);
   mount.textContent = "";
   if (!skus.length) {
-    const s = document.createElement("span");
-    s.className = "abcchip";
-    s.textContent = "\u2014";
-    mount.append(s);
+    mount.append(el("span", "abcchip", "\u2014"));
     return;
   }
   skus.forEach((s) => {
-    const chip = document.createElement("span");
-    chip.className = "abcchip";
-    chip.textContent = String(typeof s === "object" && s !== null ? s.sku ?? JSON.stringify(s) : s);
-    mount.append(chip);
+    mount.append(el("span", "abcchip", String(typeof s === "object" && s !== null ? s.sku ?? JSON.stringify(s) : s)));
   });
 }
-function renderBoard(result) {
+function normPlans(v) {
+  const ps = arr(v).map((p) => ({
+    title: String(p?.title ?? "").trim() || "Plan",
+    angle: String(p?.angle ?? "").trim(),
+    moves: arr(p?.moves).map((m) => String(m)).slice(0, 4),
+    recommended: p?.recommended === true
+  })).slice(0, 4);
+  if (ps.length && !ps.some((p) => p.recommended)) ps[0].recommended = true;
+  let seen = false;
+  for (const p of ps) {
+    if (p.recommended) {
+      if (seen) p.recommended = false;
+      else seen = true;
+    }
+  }
+  return ps;
+}
+function renderPlans(ps, selectedTitle) {
+  plans = ps;
+  selectedPlan = null;
+  const grid = $("plangrid");
+  grid.textContent = "";
+  $("plans-wrap").hidden = !ps.length;
+  ps.forEach((p) => {
+    const card = el("div", "plancard");
+    const top = el("div", "ptop");
+    top.append(el("div", "ptitle", p.title));
+    if (p.recommended) top.append(el("span", "rec", "recommended"));
+    card.append(top);
+    if (p.angle) card.append(el("div", "pangle", p.angle));
+    if (p.moves.length) {
+      const ul = el("ul", "pmoves");
+      p.moves.forEach((m) => ul.append(el("li", null, m)));
+      card.append(ul);
+    }
+    const chosen = selectedTitle ? p.title === selectedTitle : p.recommended;
+    if (chosen) card.classList.add("lit");
+    if (selectedTitle && p.title === selectedTitle) selectedPlan = p;
+    card.addEventListener("click", () => {
+      grid.querySelectorAll(".plancard").forEach((c) => c.classList.remove("lit"));
+      card.classList.add("lit");
+      selectedPlan = p;
+      runRefine();
+    });
+    grid.append(card);
+  });
+}
+function buildRefinePrompt(plan) {
+  const steer = $("steer").value.trim();
+  return [
+    "You are the sharpest inventory foreman a small e-commerce brand ever hired. Blunt, numerate, practical. Currency: INR.",
+    brandLines(),
+    "Stock + sales sheet (CSV columns: sku,product,on_hand,avg_weekly_sales,unit_cost_inr,price_inr,lead_time_days):",
+    sheetCsv(),
+    "",
+    'The owner picked this one-week plan: "' + plan.title + '"' + (plan.angle ? " \u2014 " + plan.angle : ""),
+    plan.moves.length ? "Planned moves: " + plan.moves.join(" \xB7 ") : "",
+    steer ? `Owner's steer: "` + steer + '".' : "",
+    "Turn the picked plan into a concrete week-one worksheet.",
+    "",
+    "Respond with ONLY a JSON object \u2014 no prose, no markdown fences \u2014 exactly this shape:",
+    '{"title":"","steps":[{"move":"","detail":"","impact":""}],"outcome":""}',
+    '- steps: 4-6, in the order to do them. move = an imperative of \u2264 8 words; detail = one sentence naming the actual SKUs and numbers; impact = the INR or cover-weeks effect, short (e.g. "+\u20B928,400 back", "6 wks cover").',
+    "- outcome: one sentence on where the shelf stands at the end of the week."
+  ].filter(Boolean).join("\n");
+}
+async function runRefine() {
+  if (!selectedPlan) return;
+  if (!relay || !rows.length) {
+    $("playwrap").hidden = false;
+    $("play-err").hidden = false;
+    $("play-err-text").textContent = !relay ? "connect Switchboard (top right) to detail a plan" : "the sheet is empty \u2014 paste it back, then pick again";
+    return;
+  }
+  const myRun = ++refineSeq;
+  $("play-err").hidden = true;
+  $("playwrap").hidden = false;
+  $("play-prog").hidden = false;
+  let acc = "";
+  try {
+    for await (const d of relay.stream({ prompt: buildRefinePrompt(selectedPlan) })) {
+      if (myRun !== refineSeq) return;
+      if (d.type === "text") acc += d.text;
+      else if (d.type === "error") throw new Error(d.error?.message || "stream error");
+    }
+    if (myRun !== refineSeq) return;
+    const raw = acc.match(/\{[\s\S]*\}/)?.[0];
+    if (!raw) throw new Error("no worksheet came back \u2014 retry lands it");
+    let pb;
+    try {
+      pb = JSON.parse(raw);
+    } catch {
+      throw new Error("the worksheet came back smudged (bad JSON) \u2014 retry");
+    }
+    renderPlaybook(pb);
+    try {
+      localStorage.setItem(K_PLAY, JSON.stringify({ planTitle: selectedPlan.title, playbook: pb, at: Date.now() }));
+    } catch {
+    }
+  } catch (err) {
+    if (myRun === refineSeq) {
+      $("play-err").hidden = false;
+      $("play-err-text").textContent = "Worksheet failed. " + String(err?.message || err).slice(0, 200);
+    }
+  } finally {
+    if (myRun === refineSeq) $("play-prog").hidden = true;
+  }
+}
+function renderPlaybook(pb) {
+  $("playwrap").hidden = false;
+  const box = $("playbook");
+  box.hidden = false;
+  box.textContent = "";
+  $("play-kicker").textContent = "week one \u2014 " + String(pb?.title || selectedPlan?.title || "the plan");
+  const steps = arr(pb?.steps).slice(0, 8);
+  steps.forEach((s, i) => {
+    const row = el("div", "step");
+    row.append(el("span", "sn", String(i + 1).padStart(2, "0")));
+    const body = el("div", "sbody");
+    body.append(el("div", "smv", String(s?.move ?? "")));
+    const dt = String(s?.detail ?? "").trim();
+    if (dt) body.append(el("div", "sdt", dt));
+    row.append(body);
+    const imp = String(s?.impact ?? "").trim();
+    if (imp) row.append(el("span", "simp", imp));
+    box.append(row);
+  });
+  if (!steps.length) box.append(el("div", "step", "\u2014 the worksheet came back empty; regenerate"));
+  const out = String(pb?.outcome ?? "").trim();
+  if (out) box.append(el("div", "outcome", "\u2192 " + out));
+}
+$("play-regen").addEventListener("click", runRefine);
+$("play-retry").addEventListener("click", runRefine);
+$("play-cancel").addEventListener("click", () => {
+  refineSeq++;
+  $("play-prog").hidden = true;
+});
+function renderBoard(result, opts = {}) {
   const d = result.data || {};
   $("board").hidden = false;
   const when = new Date(result.at || Date.now());
-  $("b-meta").textContent = "triaged " + when.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + " \xB7 " + (result.skuCount || arr(d.reorderNow).length + arr(d.watch).length + arr(d.deadWeight).length) + " SKUs" + (result.steer ? " \xB7 steer: \u201C" + result.steer.slice(0, 48) + (result.steer.length > 48 ? "\u2026" : "") + "\u201D" : "");
+  $("b-meta").textContent = "triaged " + when.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + " \xB7 " + (result.skuCount || arr(d.reorderNow).length + arr(d.watch).length + arr(d.deadWeight).length) + " SKUs" + (brand ? " \xB7 " + brand.name : "") + (result.steer ? " \xB7 steer: \u201C" + result.steer.slice(0, 48) + (result.steer.length > 48 ? "\u2026" : "") + "\u201D" : "");
   $("b-summary").textContent = String(d.summary ?? "");
   const cash = coerceNum(d.cashLockedInDead);
   $("b-cash").textContent = cash != null ? fmtINR(cash) : rows.length ? fmtINR(computeStats(rows).deadValue) : "\u2014";
@@ -790,21 +1035,34 @@ function renderBoard(result) {
   fillAbc("abc-a", arr(abc.a));
   fillAbc("abc-b", arr(abc.b));
   fillAbc("abc-c", arr(abc.c));
-  const note = String(d.steerAnswer ?? "").trim();
-  $("note-wrap").hidden = !note;
-  $("note-text").textContent = note;
+  renderPlans(normPlans(d.plans), opts.selectedTitle || null);
+  if (opts.fresh) {
+    refineSeq++;
+    $("playwrap").hidden = true;
+    $("playbook").hidden = true;
+    $("play-prog").hidden = true;
+    try {
+      localStorage.removeItem(K_PLAY);
+    } catch {
+    }
+  }
 }
 (function boot() {
-  let savedCsv = null, savedSteer = "", savedLast = null;
+  let savedCsv = null, savedSteer = "", savedLast = null, savedPlay = null;
   try {
     savedCsv = localStorage.getItem(K_CSV);
     savedSteer = localStorage.getItem(K_STEER) || "";
     savedLast = JSON.parse(localStorage.getItem(K_LAST) || "null");
+    savedPlay = JSON.parse(localStorage.getItem(K_PLAY) || "null");
   } catch {
   }
   $("csv").value = savedCsv != null && savedCsv.trim() ? savedCsv : SAMPLE_CSV;
   $("steer").value = savedSteer;
+  renderSteerChips();
   reparse(false);
-  if (savedLast && savedLast.data) renderBoard(savedLast);
+  if (savedLast && savedLast.data) {
+    renderBoard(savedLast, { selectedTitle: savedPlay?.planTitle || null });
+    if (savedPlay?.playbook && selectedPlan && selectedPlan.title === savedPlay.planTitle) renderPlaybook(savedPlay.playbook);
+  }
 })();
 //# sourceMappingURL=shelf.js.map
