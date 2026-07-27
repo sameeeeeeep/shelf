@@ -1,13 +1,13 @@
-// ../../packages/protocol/dist/version.js
+// ../../../../../packages/protocol/dist/version.js
 var PROVIDER_GLOBAL = "claude";
 
-// ../../packages/protocol/dist/storage.js
+// ../../../../../packages/protocol/dist/storage.js
 var STORAGE_KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 function isValidStorageKey(key) {
   return typeof key === "string" && STORAGE_KEY_RE.test(key);
 }
 
-// ../../packages/protocol/dist/errors.js
+// ../../../../../packages/protocol/dist/errors.js
 var BYOPErrorCode = {
   /** User rejected the connect/consent request. (≈ 4001) */
   USER_REJECTED: 4001,
@@ -30,14 +30,14 @@ var BYOPErrorCode = {
   BACKEND_ERROR: 4500
 };
 
-// ../../packages/sdk/dist/connect-chip.js
+// ../../../../../packages/sdk/dist/connect-chip.js
 function rungFromError(e) {
   if (e?.code !== BYOPErrorCode.PROVIDER_UNAVAILABLE)
     return null;
   return e?.data?.reason === "unpaired" ? { kind: "unpaired" } : { kind: "unreachable" };
 }
 var CHROME_STORE_URL = "https://chromewebstore.google.com/detail/injmjolmnekmahlnackakiamjepegagb";
-var RELAY_DMG_URL = "https://github.com/sameeeeeeep/switchboard/releases/latest/download/Relay.dmg";
+var RELAY_DMG_URL = "https://github.com/sameeeeeeep/switchboard/releases/latest/download/Switchboard.dmg";
 var STYLE = `
 :host { all: initial; }
 * { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
@@ -277,14 +277,14 @@ function mountConnect(target, opts = {}) {
       wrap2.append(b);
       if (menuOpen) {
         const menu = el3("div", "menu");
-        menu.append(el3("div", "body", "Two parts: the Chrome extension, then Relay for Mac."));
+        menu.append(el3("div", "body", "Two parts: the Chrome extension, then Switchboard for Mac."));
         const store = el3("button", "item", "1 \xB7 Add to Chrome \u2197");
         store.onclick = () => {
           menuOpen = false;
           render();
           window.open(CHROME_STORE_URL, "_blank", "noopener");
         };
-        const guide = el3("button", "item", "2 \xB7 Get Relay for Mac \u2197");
+        const guide = el3("button", "item", "2 \xB7 Get Switchboard for Mac \u2197");
         guide.onclick = () => {
           menuOpen = false;
           render();
@@ -300,7 +300,7 @@ function mountConnect(target, opts = {}) {
       const appMissing = state.appMissing === true;
       const wrap2 = el3("div", "wrap");
       const b = el3("button", "btn get");
-      b.append(el3("span", "glyph"), el3("span", void 0, appMissing ? "Get Relay for Mac" : "Your sidekick is asleep"), el3("span", appMissing ? "arr" : "dot", appMissing ? "\u2197" : void 0), ...appMissing ? [] : [el3("span", "caret", "\u25BE")]);
+      b.append(el3("span", "glyph"), el3("span", void 0, appMissing ? "Get Switchboard for Mac" : "Your sidekick is asleep"), el3("span", appMissing ? "arr" : "dot", appMissing ? "\u2197" : void 0), ...appMissing ? [] : [el3("span", "caret", "\u25BE")]);
       b.onclick = (e) => {
         e.stopPropagation();
         menuOpen = !menuOpen;
@@ -310,8 +310,8 @@ function mountConnect(target, opts = {}) {
       if (menuOpen) {
         const menu = el3("div", "menu");
         if (appMissing) {
-          menu.append(el3("div", "body", "Extension \u2713 \u2014 now the other half: Relay, the Mac app that holds your Claude."));
-          const dl = el3("button", "item", "Download Relay.dmg \u2197");
+          menu.append(el3("div", "body", "Extension \u2713 \u2014 now the other half: Switchboard, the Mac app that holds your Claude."));
+          const dl = el3("button", "item", "Download Switchboard.dmg \u2197");
           dl.onclick = () => {
             menuOpen = false;
             render();
@@ -319,7 +319,7 @@ function mountConnect(target, opts = {}) {
           };
           menu.append(dl, el3("div", "sep"));
         } else {
-          menu.append(el3("div", "body", "Open the Relay menubar app to wake it."));
+          menu.append(el3("div", "body", "Open the Switchboard menubar app to wake it."));
           const retry = el3("button", "item", "Retry");
           retry.onclick = () => {
             menuOpen = false;
@@ -428,7 +428,7 @@ function mountConnect(target, opts = {}) {
   };
 }
 
-// ../../packages/sdk/dist/index.js
+// ../../../../../packages/sdk/dist/index.js
 var warnedStorageKeys = /* @__PURE__ */ new Set();
 function warnBadStorageKey(key) {
   if (isValidStorageKey(key) || warnedStorageKeys.has(key))
